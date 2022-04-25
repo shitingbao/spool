@@ -1,0 +1,2 @@
+# spool
+simple workers pool
