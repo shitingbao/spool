@@ -2,6 +2,7 @@ package spool
 
 import (
 	"context"
+	"fmt"
 )
 
 type workFunc func()
@@ -90,6 +91,11 @@ func (w *worker) submit(f workFunc) {
 
 // 将自身放入工人池中，获取一份工作池中的工作执行
 func (w *worker) run() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("worker run:", err)
+		}
+	}()
 	for {
 		w.workerPool <- w // @workRun ： 有缓冲这步非阻塞，不会影响下面的退出
 		select {

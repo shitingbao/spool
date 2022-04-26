@@ -2,6 +2,7 @@ package spool
 
 import (
 	"context"
+	"fmt"
 )
 
 type workParamFunc func(interface{})
@@ -90,6 +91,11 @@ func (w *workerWithFunc) submit(f interface{}) {
 }
 
 func (w *workerWithFunc) run() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("worker run:", err)
+		}
+	}()
 	for {
 		w.workerPool <- w
 		select {
