@@ -11,6 +11,8 @@ type Pool struct {
 	workPool chan workFunc
 }
 
+// 反馈一个普通池
+// 开启调度器和对应数量的协程
 func NewPool(size int) *Pool {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -36,6 +38,7 @@ func (p *Pool) Release() {
 	p.cancel()
 }
 
+// 调度器，用于调度待执行的任务和可执行的协程之间的关系
 type dispatch struct {
 	ctx        context.Context
 	workerPool chan *worker
