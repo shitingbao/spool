@@ -2,10 +2,14 @@ package spool
 
 import (
 	"context"
+	"encoding/json"
 )
 
-type workParamFunc func(interface{}) ([]byte, error)
+type workParamFunc func(interface{}) (WorkResult, error)
+
 type workParam interface{}
+
+type WorkResult interface{}
 
 type PoolWithFunc struct {
 	cancel   context.CancelFunc
@@ -122,8 +126,12 @@ func (w *workerWithFunc) run() {
 		w.workerPool <- w
 		select {
 		case param := <-w.work:
+			body := []byte{}
 			b, err := w.workFunc(param)
-			w.handleMessage <- Message{b, err}
+			if err == nil {
+				body, err = json.Marshal(b)
+			}
+			w.handleMessage <- Message{body, err}
 		case <-w.ctx.Done():
 			return
 		}

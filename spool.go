@@ -2,9 +2,10 @@ package spool
 
 import (
 	"context"
+	"encoding/json"
 )
 
-type workFunc func() ([]byte, error)
+type workFunc func() (WorkResult, error)
 
 type Pool struct {
 	cancel   context.CancelFunc // context 的根节点取消方法，用于杀死所有工作逻辑
@@ -126,8 +127,12 @@ func (w *worker) run() {
 		w.workerPool <- w // @workRun ： 有缓冲这步非阻塞，不会影响下面的退出
 		select {
 		case wf := <-w.work: // 在自己的工作池中，获取一个调度器给的工作，并执行
+			body := []byte{}
 			b, err := wf()
-			w.handleMessage <- Message{b, err} // 将执行反馈结果放入反馈通道中，在调度器中取出
+			if err == nil {
+				body, err = json.Marshal(b)
+			}
+			w.handleMessage <- Message{body, err} // 将执行反馈结果放入反馈通道中，在调度器中取出
 			//这里处理一下过程的记录
 		case <-w.ctx.Done():
 			return
