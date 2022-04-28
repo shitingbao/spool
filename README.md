@@ -5,7 +5,7 @@ simple workers pool
 
 ## 图形解释
 
-![image](https://github.com/shitingbao/spool/model.jpeg)
+![image](https://github.com/shitingbao/spool/blob/main/model.jpeg)
 
 ## 实现原理及内容
 
