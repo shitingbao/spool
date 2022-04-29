@@ -48,6 +48,7 @@ func (p *PoolWithFunc) Submit(work workParam) {
 	p.workPool <- work
 }
 
+// Release 关闭整个池
 func (p *PoolWithFunc) Release() {
 	p.cancel()
 }
