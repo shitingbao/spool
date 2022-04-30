@@ -44,6 +44,7 @@ func NewPoolWithFunc(size int, fn workParamFunc, opt ...Option) *PoolWithFunc {
 	}
 }
 
+// 提交一个任意类型的参数
 func (p *PoolWithFunc) Submit(work workParam) {
 	p.workPool <- work
 }

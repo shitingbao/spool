@@ -117,6 +117,7 @@ func newWorker(workId int, ctx context.Context, pool chan *worker, hMessage chan
 }
 
 // 将需要执行的工作逻辑，放入工作池中，等待工作者处理
+// 提交一个逻辑方法
 func (w *worker) submit(f workFunc) {
 	w.work <- f
 }
