@@ -8,11 +8,12 @@ import (
 type workFunc func() (WorkResult, error)
 
 type Pool struct {
+	ctx      context.Context
 	cancel   context.CancelFunc // context 的根节点取消方法，用于杀死所有工作逻辑
 	workPool chan workFunc      // 工作池，需要执行的逻辑通道
 }
 
-// 反馈一个普通池
+// NewPool 反馈一个普通池
 // 开启调度器
 // 开启对应数量的协程
 func NewPool(size int, opt ...Option) *Pool {
@@ -24,9 +25,9 @@ func NewPool(size int, opt ...Option) *Pool {
 		o(op)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := op.getCollectiveContext() // context 的根节点
 
-	workerLine := make(chan *worker, size) // 这里必须使用 size 个缓冲，对应 @workRun 标示处的解释
+	workerLine := make(chan *worker, size) // 必须使用 size 个缓冲，对应 @workRun 标示处的解释
 	workFuncLine := make(chan workFunc, 1)
 	mesLine := make(chan Message, 1) // 消息传输通道
 	d := newDispatch(ctx, op.HandlePoolMessage, workerLine, workFuncLine, mesLine)
@@ -39,11 +40,19 @@ func NewPool(size int, opt ...Option) *Pool {
 	return &Pool{
 		workPool: workFuncLine,
 		cancel:   cancel,
+		ctx:      ctx,
 	}
 }
 
+// Submit 将一个工作提交到工作池中
+// 注意：当有过期时间，并单独使用的时候，Submit 最好异步提交，不然会引起工作池满而出现 panic
 func (p *Pool) Submit(work workFunc) {
-	p.workPool <- work
+	select {
+	case <-p.ctx.Done():
+		return
+	default:
+		p.workPool <- work
+	}
 }
 
 func (p *Pool) Release() {
@@ -119,7 +128,12 @@ func newWorker(workId int, ctx context.Context, pool chan *worker, hMessage chan
 // 将需要执行的工作逻辑，放入工作池中，等待工作者处理
 // 提交一个逻辑方法
 func (w *worker) submit(f workFunc) {
-	w.work <- f
+	select {
+	case <-w.ctx.Done():
+		return
+	default:
+		w.work <- f
+	}
 }
 
 // 将自身放入工人池中，获取一份工作池中的工作执行

@@ -12,6 +12,7 @@ type workParam interface{}
 type WorkResult interface{}
 
 type PoolWithFunc struct {
+	ctx      context.Context
 	cancel   context.CancelFunc
 	workPool chan workParam
 }
@@ -26,7 +27,7 @@ func NewPoolWithFunc(size int, fn workParamFunc, opt ...Option) *PoolWithFunc {
 		o(op)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := op.getCollectiveContext()
 
 	workerLine := make(chan *workerWithFunc, size)
 	workFuncLine := make(chan workParam, 1)
@@ -41,12 +42,18 @@ func NewPoolWithFunc(size int, fn workParamFunc, opt ...Option) *PoolWithFunc {
 	return &PoolWithFunc{
 		workPool: workFuncLine,
 		cancel:   cancel,
+		ctx:      ctx,
 	}
 }
 
 // 提交一个任意类型的参数
 func (p *PoolWithFunc) Submit(work workParam) {
-	p.workPool <- work
+	select {
+	case <-p.ctx.Done():
+		return
+	default:
+		p.workPool <- work
+	}
 }
 
 // Release 关闭整个池
@@ -120,7 +127,12 @@ func newWorkerWithFunc(workId int, ctx context.Context, hMessage chan Message, p
 }
 
 func (w *workerWithFunc) submit(f interface{}) {
-	w.work <- f
+	select {
+	case <-w.ctx.Done():
+		return
+	default:
+		w.work <- f
+	}
 }
 
 func (w *workerWithFunc) run() {
