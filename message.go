@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+// 用于接收反馈内容的接口
+// 可自行定义 HandleMessage 的内容来处理反馈内容
+type PoolMessage interface {
+	HandleMessage(Message) error
+}
+
 type option struct {
 	HandlePoolMessage PoolMessage
 	DeadTimeDuration  time.Duration // 设置整个池执行的死亡时间
@@ -38,12 +44,6 @@ func (o *option) getCollectiveContext() (context.Context, context.CancelFunc) {
 type Message struct {
 	Body []byte
 	Err  error
-}
-
-// 用于接收反馈内容的接口
-// 可自行定义 HandleMessage 的内容来处理反馈内容
-type PoolMessage interface {
-	HandleMessage(Message) error
 }
 
 type defaultPoolMessage struct{}
